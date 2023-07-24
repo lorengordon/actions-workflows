@@ -23,6 +23,10 @@ on:
         description: Space-separated list of paths to requirements files installed by yum, `salt-os-version` is templated as `{0}`
         default: ./tests/requirements.txt ./tests/requirements-el{0}.txt
         type: string
+      salt-services-files:
+        description: Space-separated list of paths to requirements files installed by yum, `salt-os-version` is templated as `{0}`
+        default: ./tests/services.txt ./tests/services-el{0}.txt
+        type: string
 
 defaults:
   run:
@@ -47,19 +51,27 @@ jobs:
       - name: Clone this git repository
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
 
-      # Install salt
+      # Prepare container
       - run: touch /etc/fstab
+      - run: dbus-uuidgen > /var/lib/dbus/machine-id
+      - run: mkdir -p /var/run/dbus
+      - run: dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address
+
+      # Install salt
       - run: curl -sSL -o /etc/yum.repos.d/salt.repo ${{ env.SALT_REPO_URL }}
       - run: >-
           mapfile -t REQUIREMENTS < <(cat ${{ format(inputs.salt-requirements-files, inputs.salt-os-version) }}) &&
           yum install -y "${REQUIREMENTS[@]}"
-
       - run: salt-call --versions-report
-
       - run: >-
           salt-call --local --retcode-passthrough
           --file-root=${{ github.workspace }} --pillar-root=${{ inputs.salt-pillar-root }}
           saltutil.sync_all
+
+      # Start services
+      - run: >-
+          mapfile -t SERVICES < <(cat ${{ format(inputs.salt-services-files, inputs.salt-os-version) }}) &&
+          for SERVICE in "${SERVICES[@]}"; do echo "Starting ${SERVICE}..."; systemctl start "$SERVICE"; done
 
       # Run tests
       - run: >-
