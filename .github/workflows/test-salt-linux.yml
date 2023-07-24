@@ -42,20 +42,23 @@ jobs:
           8: "quay.io/centos/centos:stream8"
         }')[inputs.salt-os-version] }}
       volumes:
-        - /sys/fs/cgroup:/sys/fs/cgroup
+        - /sys/fs/cgroup:/sys/fs/cgroup:rw
         - ${{ github.workspace }}:${{ github.workspace }}
-      options: --cap-add=SYS_ADMIN
+      options: >-
+        --privileged --cgroup-parent=docker.slice --cgroupns=host
+        --tmpfs /tmp --tmpfs /run --tmpfs /run/lock --tmpfs /var/lib/journal
       env:
         container: docker
     env:
       SALT_REPO_URL: ${{ format(inputs.salt-repo-url, inputs.salt-os-version) }}
     steps:
-      # Launch init, https://forums.docker.com/t/any-simple-and-safe-way-to-start-services-on-centos7-systemd/5695/10
+      # Setup the container
+      - run: ls -al /usr/sbin/init
       - run: exec /usr/sbin/init
-      - run: touch /etc/fstab
       # - run: dbus-uuidgen > /var/lib/dbus/machine-id
       # - run: mkdir -p /var/run/dbus
       # - run: dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address
+      - run: touch /etc/fstab
 
       - name: Clone this git repository
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
