@@ -44,18 +44,21 @@ jobs:
       volumes:
         - /sys/fs/cgroup:/sys/fs/cgroup
         - ${{ github.workspace }}:${{ github.workspace }}
-      options: --privileged
+      options: --cap-add=SYS_ADMIN
+      env:
+        container: docker
     env:
       SALT_REPO_URL: ${{ format(inputs.salt-repo-url, inputs.salt-os-version) }}
     steps:
+      # Launch init, https://forums.docker.com/t/any-simple-and-safe-way-to-start-services-on-centos7-systemd/5695/10
+      - run: exec /usr/sbin/init
+      - run: touch /etc/fstab
+      # - run: dbus-uuidgen > /var/lib/dbus/machine-id
+      # - run: mkdir -p /var/run/dbus
+      # - run: dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address
+
       - name: Clone this git repository
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-
-      # Prepare container
-      - run: touch /etc/fstab
-      - run: dbus-uuidgen > /var/lib/dbus/machine-id
-      - run: mkdir -p /var/run/dbus
-      - run: dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address
 
       # Install salt
       - run: curl -sSL -o /etc/yum.repos.d/salt.repo ${{ env.SALT_REPO_URL }}
