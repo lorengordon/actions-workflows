@@ -38,8 +38,8 @@ jobs:
     container:
       image: >-
         ${{ fromJson('{
-          7: "fauust/docker-systemd:almalinux-8",
-          8: "fauust/docker-systemd:almalinux-8"
+          7: "quay.io/centos/centos:centos7",
+          8: "quay.io/centos/centos:stream8"
         }')[inputs.salt-os-version] }}
       volumes:
         - /sys/fs/cgroup:/sys/fs/cgroup:ro
@@ -52,10 +52,10 @@ jobs:
       SALT_REPO_URL: ${{ format(inputs.salt-repo-url, inputs.salt-os-version) }}
     steps:
       # Setup the container
-      - run: exec /lib/systemd/systemd --system --unit=basic.target
-      # - run: dbus-uuidgen > /var/lib/dbus/machine-id
-      # - run: mkdir -p /var/run/dbus
-      # - run: dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address
+      # - run: exec /lib/systemd/systemd --system --unit=basic.target
+      - run: dbus-uuidgen > /var/lib/dbus/machine-id
+      - run: mkdir -p /var/run/dbus
+      - run: dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address
       - run: touch /etc/fstab
 
       - name: Clone this git repository
